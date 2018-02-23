@@ -55,10 +55,16 @@ function convertDataToLines(data) {
     return data.split(/[\n\r]+/).map(function(line){
         return line.split("\t").filter(function(el){
             return el;
+        }).map(function(el) {
+            return convertStringToValue(el);
         });
     }).filter(function(el) {
         return el.length > 0;
     });
+}
+
+function convertStringToValue(s) {
+    return s.replace(",",".");
 }
 
 function normalizeMatrix(matrix) {
@@ -79,16 +85,34 @@ function mapVariablesToIndices(headers, variables) {
     });    
 }
 
+function keepInputsOutputsRow(row, indices) {
+    return indices.map(function(index){
+        return row[index];
+    });
+}
+
+function keepInputsOutputsMatrix(data, indices) {
+    return data.map(function(datum) {
+        return keepInputsOutputsRow(datum, indices);
+    });
+}
+
 function converTabFormatToNetworkFormat(data, inputs, outputs) {
     var lines = convertDataToLines(data);
 
     var headers = lines[0];
     var data = lines.slice(1);
 
-    data=normalizeMatrix(data);
-
     var iindexes = mapVariablesToIndices(headers, inputs);
     var oindexes = mapVariablesToIndices(headers, outputs);
+
+    data = keepInputsOutputsMatrix(data, iindexes.concat(oindexes));
+    headers = keepInputsOutputsRow(headers, iindexes.concat(oindexes));
+
+    iindexes = mapVariablesToIndices(headers, inputs);
+    oindexes = mapVariablesToIndices(headers, outputs);
+
+    data=normalizeMatrix(data);
 
     var result = data.map(function(line){
         return {
@@ -104,15 +128,17 @@ function converTabFormatToNetworkFormat(data, inputs, outputs) {
     return result;
 }
 
-var file = loadTabFile("../trimmed.txt");
-var dataset = converTabFormatToNetworkFormat(file, ["a","b","c","d","e","f","g"],["h"]);
+var file = loadTabFile("../untrimmed.txt");
+var inputs = []
+var outputs = [];
+var dataset = converTabFormatToNetworkFormat(file, inputs, outputs);
 //console.log(dataset);
-var network = createNetwork(7, 1);
+var network = createNetwork(inputs.length, outputs.length);
 evolveNetwork(network, dataset).then(function() {
     if(!fs.existsSync("output")) {
         fs.mkdirSync("output");
     }
-    fs.writeFileSync("output/output-network.json",JSON.stringify(network.toJSON()));
-    fs.writeFileSync("output/output-network-graph.json", JSON.stringify(network.graph(800,800)));
-    fs.writeFileSync("output/output.js", "drawGraph(JSON.parse('" + JSON.stringify(network.graph(800,800)) + "'), '.draw');");
+    fs.writeFileSync("output/output-network.json",JSON.stringify(network.toJSON(), null, 2));
+    fs.writeFileSync("output/output-network-graph.json", JSON.stringify(network.graph(800,800), null, 2));
+    fs.writeFileSync("output/output.js", "drawGraph(JSON.parse(`" + JSON.stringify(network.graph(800,800), null, 2) + "`), '.draw');");
 });
