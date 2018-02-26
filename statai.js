@@ -1,5 +1,5 @@
 
-var neataptic = require('neataptic');
+var neataptic = module.exports.neataptic = require('neataptic');
 var fs = require('fs');
 
 module.exports.loadTabFile = function (file) {
@@ -203,7 +203,7 @@ module.exports.saveNetwork = function (network, name) {
         fs.writeFileSync("output/graph-"+name+".html", html);
     }
     fs.writeFileSync("output/output-network-"+name+".json", JSON.stringify(network.toJSON(), null, 2));
-    fs.writeFileSync("output/output-network-"+name+"graph.json", JSON.stringify(network.graph(800, 800), null, 2));
+    fs.writeFileSync("output/output-network-"+name+"-graph.json", JSON.stringify(network.graph(800, 800), null, 2));
     fs.writeFileSync("output/output-"+name+".js", "drawGraph(JSON.parse(`" + JSON.stringify(network.graph(800, 800), null, 2) + "`), '.draw');");
 
 }
